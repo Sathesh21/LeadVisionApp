@@ -11,6 +11,7 @@ import NotificationScreen from "./src/screens/NotificationScreen";
 import LocationScreen from "./src/screens/LocationScreen";
 import LeadAllocation from "./src/screens/LeadAllocation";
 import SettingsScreen from "./src/screens/SettingsScreen";
+import LeadDetails from "./src/screens/LeadDetails";
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +27,7 @@ const App = () => {
           <Stack.Screen name="Location" component={LocationScreen} />
           <Stack.Screen name="LeadAllocation" component={LeadAllocation} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="LeadDetails" component={LeadDetails} />
         </Stack.Navigator>
       </NavigationContainer>
     </ThemeProvider>
