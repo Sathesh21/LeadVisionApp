@@ -1,79 +1,67 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+LeadVisionApp
 
-# Getting Started
+A React Native application with theming, navigation, and basic screens for login, dashboard, search, and settings.
 
->**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
+🚀 Features
 
-## Step 1: Start the Metro Server
+Authentication: Login screen with simple validation.
 
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
+Dashboard: Displays overview with theme support.
 
-To start Metro, run the following command from the _root_ of your React Native project:
+Search: Search planets using SWAPI API with pagination and population-based sizing.
 
-```bash
-# using npm
-npm start
+Settings:
 
-# OR using Yarn
-yarn start
-```
+Toggle between Light and Dark theme.
 
-## Step 2: Start your Application
+Choose Base Color (Blue, Green, Purple, Orange).
 
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
+Header Component:
 
-### For Android
+Common reusable header across screens.
 
-```bash
-# using npm
-npm run android
+Back button support (only when navigation can go back).
 
-# OR using Yarn
-yarn android
-```
+Theme Context: Centralized theme management using Context API.
 
-### For iOS
+🛠️ Tech Stack
+React Native CLI
 
-```bash
-# using npm
-npm run ios
+React Navigation
 
-# OR using Yarn
-yarn ios
-```
+Context API (for theme management)
 
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
+SWAPI API (for Star Wars planet search)
 
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
+⚡ Installation & Setup
 
-## Step 3: Modifying your App
+Clone the repository:
 
-Now that you have successfully run the app, let's modify it.
+git clone https://github.com/Sathesh21/LeadVisionApp.git
+cd LeadVisionApp
 
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
 
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
+Install dependencies:
 
-## Congratulations! :tada:
+npm install
 
-You've successfully run and modified your React Native App. :partying_face:
 
-### Now what?
+Start Metro bundler:
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
+npx react-native start
 
-# Troubleshooting
 
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+Run on Android:
 
-# Learn More
+npx react-native run-android
 
-To learn more about React Native, take a look at the following resources:
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+Run on iOS (Mac):
+
+npx react-native run-ios
+
+🎨 Theming
+
+Dark & Light themes available.
+
+Custom base colors supported: blue, green, purple, orange.
