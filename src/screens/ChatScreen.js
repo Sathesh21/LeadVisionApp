@@ -28,32 +28,40 @@ const ChatScreen = ({ navigation }) => {
 
   const fetchLeads = async (query = "") => {
     try {
-      const res = await fetch("https://68ac12bd7a0bbe92cbb928c7.mockapi.io/api/v1/leads");
-      const data = await res.json();
-      console.log("Fetched leads:", data);
-
-      if (!Array.isArray(data)) return [];
+      // Mock API response with better lead data
+      const mockLeads = [
+        { id: '1', name: 'Rajesh Kumar', location: 'T. Nagar, Chennai, Tamil Nadu', matchScore: 95 },
+        { id: '2', name: 'Priya Sharma', location: 'Anna Nagar, Chennai, Tamil Nadu', matchScore: 87 },
+        { id: '3', name: 'Arjun Krishnan', location: 'Velachery, Chennai, Tamil Nadu', matchScore: 78 },
+        { id: '4', name: 'Meera Devi', location: 'Adyar, Chennai, Tamil Nadu', matchScore: 92 },
+        { id: '5', name: 'Suresh Babu', location: 'Tambaram, Chennai, Tamil Nadu', matchScore: 65 },
+        { id: '6', name: 'Lakshmi Narayanan', location: 'Mylapore, Chennai, Tamil Nadu', matchScore: 83 },
+      ];
 
       let filtered;
+      const queryLower = query.toLowerCase();
 
-      // Simulate "AI understanding" for nearby leads
-      if (query.toLowerCase().includes("nearby")) {
-        filtered = data.slice(0, 5); // first 5 leads as "nearby"
+      // Simulate AI understanding for different queries
+      if (queryLower.includes('nearby') || queryLower.includes('near')) {
+        filtered = mockLeads.slice(0, 3); // first 3 as nearby
+      } else if (queryLower.includes('high') || queryLower.includes('best')) {
+        filtered = mockLeads.filter(lead => lead.matchScore > 85);
+      } else if (queryLower.includes('all') || queryLower.includes('show')) {
+        filtered = mockLeads;
       } else {
-        filtered = query
-          ? data.filter((lead) => lead.name.toLowerCase().includes(query.toLowerCase()))
-          : data;
+        filtered = mockLeads.filter(lead => 
+          lead.name.toLowerCase().includes(queryLower) ||
+          lead.location.toLowerCase().includes(queryLower)
+        );
       }
 
-      // Add random matchScorePercent
-      return filtered.map((lead) => ({
+      // Add matchScorePercent for display
+      return filtered.map(lead => ({
         ...lead,
         matchScorePercent: lead.matchScore
-          ? Math.floor(Math.random() * 21 + 80)
-          : Math.floor(Math.random() * 80),
       }));
     } catch (error) {
-      console.error("Error fetching leads:", error);
+      console.error('Error fetching leads:', error);
       return [];
     }
   };

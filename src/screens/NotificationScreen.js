@@ -1,5 +1,5 @@
-import React, { useContext } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import React, { useContext, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from "react-native";
 import { ThemeContext } from "../theme/ThemeContext";
 import Header from "../components/Header/Header";
 
@@ -8,8 +8,8 @@ const NotificationScreen = ({ navigation, route }) => {
 
   // Mock lead data if not passed via route
   const lead = route?.params?.lead || {
-    name: "John Doe",
-    location: "New York, NY",
+    name: "Rajesh Kumar",
+    location: "T. Nagar, Chennai, Tamil Nadu",
     matchScorePercent: 92,
     image: "https://via.placeholder.com/150", // optional placeholder image
   };
@@ -20,14 +20,14 @@ const NotificationScreen = ({ navigation, route }) => {
   };
 
   const handleReject = () => {
-    // Save to declined leads (mock)
-    console.log("Lead rejected:", lead);
-    navigation.goBack();
+    Alert.alert('Lead Declined', 'Lead has been declined', [
+      { text: 'OK', onPress: () => navigation.goBack() }
+    ]);
   };
 
   return (
     <View style={[styles.container, { backgroundColor: themeStyles.background }]}>
-      <Header title="Full Notification" navigation={navigation} />
+      <Header title="Task 3: Full Notification" navigation={navigation} />
 
       <View style={styles.notificationCard}>
         {lead.image && (

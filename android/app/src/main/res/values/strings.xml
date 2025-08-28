@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">LeadVisionApp</string>
+    <string name="app_name">LeadVision</string>
+    <color name="splash_background">#FFFFFF</color>
 </resources>

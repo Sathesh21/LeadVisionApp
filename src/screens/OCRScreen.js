@@ -146,8 +146,13 @@ const OCRScreen = ({ navigation }) => {
     <View style={{ marginBottom: 15 }}>
       <CustomInput label={label} value={value} onChangeText={onChangeText} />
       {value && confidence !== null && (
-        <Text style={{ color: themeStyles.text, fontSize: 12, marginTop: 2 }}>
-          Confidence: {confidence}%
+        <Text style={{ 
+          color: confidence > 80 ? '#4CAF50' : confidence > 60 ? '#FF9800' : '#F44336', 
+          fontSize: 12, 
+          marginTop: 2,
+          fontWeight: '600'
+        }}>
+          Confidence: {confidence}% {confidence > 80 ? '✓' : confidence > 60 ? '⚠' : '✗'}
         </Text>
       )}
     </View>
@@ -163,7 +168,7 @@ const OCRScreen = ({ navigation }) => {
 
   return (
     <>
-      <Header navigation={navigation} title="OCR Scanner" onSettingsPress={() => navigation.navigate("Settings")} />
+      <Header navigation={navigation} title="Task 1: OCR Capture" />
       <SafeAreaView style={{ flex: 1, backgroundColor: themeStyles.background }}>
         <FlatList
           data={savedDataList}
