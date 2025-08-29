@@ -1,18 +1,19 @@
-import React, { useContext, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from "react-native";
+import React, { useContext } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { ThemeContext } from "../theme/ThemeContext";
 import Header from "../components/Header/Header";
+import { validateMatchScore } from "../utils/validation";
 
 const NotificationScreen = ({ navigation, route }) => {
   const { themeStyles } = useContext(ThemeContext);
 
-  // Mock lead data if not passed via route
   const lead = route?.params?.lead || {
     name: "Rajesh Kumar",
     location: "T. Nagar, Chennai, Tamil Nadu",
     matchScorePercent: 92,
-    image: "https://via.placeholder.com/150", // optional placeholder image
   };
+
+  const validMatchScore = validateMatchScore(lead.matchScorePercent);
 
   const handleAccept = () => {
     // Navigate to Lead Details screen
@@ -29,19 +30,27 @@ const NotificationScreen = ({ navigation, route }) => {
     <View style={[styles.container, { backgroundColor: themeStyles.background }]}>
       <Header title="Task 3: Full Notification" navigation={navigation} />
 
-      <View style={styles.notificationCard}>
-        {lead.image && (
-          <Image source={{ uri: lead.image }} style={styles.leadImage} />
-        )}
+      <View style={[styles.notificationCard, { backgroundColor: themeStyles.card }]}>
+        <View style={styles.header}>
+          <Text style={[styles.alertTitle, { color: themeStyles.text }]}>
+            🔔 New Lead Alert!
+          </Text>
+          <Text style={[styles.priority, { 
+            color: validMatchScore > 80 ? '#4CAF50' : '#FF9800',
+            backgroundColor: validMatchScore > 80 ? '#E8F5E8' : '#FFF3E0'
+          }]}>
+            {validMatchScore > 80 ? 'HIGH PRIORITY' : 'MEDIUM PRIORITY'}
+          </Text>
+        </View>
 
         <Text style={[styles.leadName, { color: themeStyles.text }]}>
           {lead.name}
         </Text>
         <Text style={[styles.leadLocation, { color: themeStyles.textSecondary }]}>
-          {lead.location}
+          📍 {lead.location}
         </Text>
-        <Text style={[styles.leadScore, { color: lead.matchScorePercent > 80 ? "green" : themeStyles.text }]}>
-          Match Score: {lead.matchScorePercent}%
+        <Text style={[styles.leadScore, { color: validMatchScore > 80 ? "#4CAF50" : "#FF9800" }]}>
+          Match Score: {validMatchScore}%
         </Text>
 
         <View style={styles.buttonContainer}>
@@ -80,11 +89,21 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
   },
-  leadImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+  header: {
+    alignItems: 'center',
     marginBottom: 20,
+  },
+  alertTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  priority: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   leadName: { fontSize: 22, fontWeight: "bold", marginBottom: 8 },
   leadLocation: { fontSize: 16, marginBottom: 8 },

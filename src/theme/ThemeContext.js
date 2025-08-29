@@ -10,26 +10,15 @@ export const ThemeProvider = ({ children }) => {
   const [baseColor, setBaseColor] = useState("blue");
 
   useEffect(() => {
-    loadThemeSettings();
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
       if (!theme) setTheme(colorScheme || "light");
     });
     return () => subscription?.remove();
   }, []);
 
-  const loadThemeSettings = () => {
-    // Theme settings will persist during app session
-    console.log('Theme settings loaded');
-  };
-
-  const saveThemeSettings = (newTheme, newBaseColor) => {
-    // Theme settings saved in memory for session
-    console.log('Theme settings saved:', { theme: newTheme, baseColor: newBaseColor });
-  };
 
   const updateTheme = (newTheme) => {
     setTheme(newTheme);
-    saveThemeSettings(newTheme, baseColor);
   };
 
   const updateBaseColor = (newBaseColor) => {

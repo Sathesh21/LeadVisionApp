@@ -1,73 +1,59 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, PermissionsAndroid } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, PermissionsAndroid } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { ThemeContext } from '../theme/ThemeContext';
 import Header from '../components/Header/Header';
 
 const LEADS = [
-  { id: '1', name: 'Rajesh Kumar', latitude: 13.0900, longitude: 80.2800, matchScore: 95 },
-  { id: '2', name: 'Priya Sharma', latitude: 13.0700, longitude: 80.2600, matchScore: 87 },
-  { id: '3', name: 'Arjun Krishnan', latitude: 13.0950, longitude: 80.2500, matchScore: 78 },
-  { id: '4', name: 'Meera Devi', latitude: 13.0650, longitude: 80.2750, matchScore: 92 },
+  { id: '1', name: 'Rajesh Kumar', latitude: 13.0827, longitude: 80.2707, matchScore: 95 },
+  { id: '2', name: 'Priya Sharma', latitude: 13.0850, longitude: 80.2101, matchScore: 87 },
+  { id: '3', name: 'Arjun Krishnan', latitude: 12.9750, longitude: 80.2200, matchScore: 78 },
+  { id: '4', name: 'Meera Devi', latitude: 13.0067, longitude: 80.2206, matchScore: 92 },
 ];
 
 const LocationScreen = ({ navigation }) => {
   const { themeStyles } = useContext(ThemeContext);
   const [userLocation, setUserLocation] = useState(null);
-  const [locationHistory, setLocationHistory] = useState([]);
   const [nearestLead, setNearestLead] = useState(null);
   const [isTracking, setIsTracking] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(null);
-  const [locationName, setLocationName] = useState('');
   const [intervalId, setIntervalId] = useState(null);
 
   const requestPermission = async () => {
-    // Always return true for mock data
-    return true;
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      return false;
+    }
   };
 
   const getCurrentLocation = async () => {
-    // Simulate movement by adding small random variations
-    const baseLatitude = 13.0827;
-    const baseLongitude = 80.2707;
-    const variation = 0.005; // Small movement radius
-    
-    const chennaiLocation = {
-      latitude: baseLatitude + (Math.random() - 0.5) * variation,
-      longitude: baseLongitude + (Math.random() - 0.5) * variation,
-      timestamp: new Date(),
-      area: 'Chennai, Tamil Nadu'
-    };
-    
-    setUserLocation(chennaiLocation);
-    setLastUpdate(new Date());
-    setLocationName('Chennai, Tamil Nadu');
-    
-    setLocationHistory(prev => {
-      const newHistory = [chennaiLocation, ...prev].slice(0, 5);
-      return newHistory;
-    });
-    
-    findNearestLead(chennaiLocation.latitude, chennaiLocation.longitude);
-  };
-
-  const startTracking = () => {
-    setIsTracking(true);
-    getCurrentLocation();
-    
-    const id = setInterval(() => {
-      getCurrentLocation();
-    }, 120000); // 2 minutes
-    
-    setIntervalId(id);
-  };
-
-  const stopTracking = () => {
-    setIsTracking(false);
-    if (intervalId) {
-      clearInterval(intervalId);
-      setIntervalId(null);
+    const hasPermission = await requestPermission();
+    if (!hasPermission) {
+      Alert.alert('Permission Required', 'Location permission is required');
+      return;
     }
+
+    // Use native geolocation API
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ latitude, longitude });
+        findNearestLead(latitude, longitude);
+      },
+      (error) => {
+        console.log('Geolocation error:', error);
+        // Fallback to mock location for demo
+        const mockLat = 13.0827 + (Math.random() - 0.5) * 0.02;
+        const mockLng = 80.2707 + (Math.random() - 0.5) * 0.02;
+        setUserLocation({ latitude: mockLat, longitude: mockLng });
+        findNearestLead(mockLat, mockLng);
+        Alert.alert('Demo Mode', 'Using simulated location near Chennai');
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
   };
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -96,6 +82,25 @@ const LocationScreen = ({ navigation }) => {
     setNearestLead(nearest);
   };
 
+  const startTracking = () => {
+    setIsTracking(true);
+    getCurrentLocation();
+    
+    const id = setInterval(() => {
+      getCurrentLocation();
+    }, 120000); // 2 minutes
+    
+    setIntervalId(id);
+  };
+
+  const stopTracking = () => {
+    setIsTracking(false);
+    if (intervalId) {
+      clearInterval(intervalId);
+      setIntervalId(null);
+    }
+  };
+
   useEffect(() => {
     getCurrentLocation();
     return () => {
@@ -121,11 +126,10 @@ const LocationScreen = ({ navigation }) => {
           style={[styles.button, { backgroundColor: '#2196F3' }]}
           onPress={getCurrentLocation}
         >
-          <Text style={styles.buttonText}>🔄 Update Now</Text>
+          <Text style={styles.buttonText}>🔄 Update</Text>
         </TouchableOpacity>
       </View>
 
-      {/* 3. Show location on map view */}
       {userLocation && (
         <View style={styles.mapContainer}>
           <MapView
@@ -139,20 +143,9 @@ const LocationScreen = ({ navigation }) => {
           >
             <Marker
               coordinate={userLocation}
-              title="Your Live Location"
-              description={locationName || 'Current Location'}
+              title="Your Location"
               pinColor="blue"
             />
-            {locationHistory.map((location, index) => (
-              <Marker
-                key={`history-${index}`}
-                coordinate={{ latitude: location.latitude, longitude: location.longitude }}
-                title={`Previous Location ${index + 1}`}
-                description={`${location.area} - ${location.timestamp?.toLocaleTimeString()}`}
-                pinColor="orange"
-                opacity={0.7 - (index * 0.1)}
-              />
-            ))}
             {LEADS.map(lead => (
               <Marker
                 key={lead.id}
@@ -175,15 +168,6 @@ const LocationScreen = ({ navigation }) => {
           </Text>
           <Text style={[styles.status, { color: isTracking ? '#4CAF50' : '#F44336' }]}>
             Status: {isTracking ? 'Tracking (2min updates)' : 'Not tracking'}
-          </Text>
-          <Text style={[styles.update, { color: themeStyles.textSecondary }]}>
-            Last Update: {lastUpdate ? lastUpdate.toLocaleTimeString() : 'Never'}
-          </Text>
-          <Text style={[styles.area, { color: themeStyles.textSecondary }]}>
-            Current Area: {locationName || 'Getting location...'}
-          </Text>
-          <Text style={[styles.history, { color: themeStyles.textSecondary }]}>
-            Location History: {locationHistory.length} places visited
           </Text>
         </View>
       )}
@@ -239,18 +223,6 @@ const styles = StyleSheet.create({
   status: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 4,
-  },
-  update: {
-    fontSize: 12,
-  },
-  area: {
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  history: {
-    fontSize: 12,
-    fontStyle: 'italic',
   },
 });
 

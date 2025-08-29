@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from "react";
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native";
 import { ThemeContext } from "../theme/ThemeContext";
 import Header from "../components/Header/Header";
+import { calculateDistance, validateMatchScore } from "../utils/validation";
 import { SPACING, FONT_SIZE, BORDER_RADIUS, BASE_COLORS } from "../constants/colors";
 
 // Enhanced leads dataset with more details
@@ -14,19 +15,7 @@ const dummyLeads = [
   { id: "6", name: "Lakshmi Narayanan", matchScore: 75, latitude: 13.0878, longitude: 80.2785, company: "Mylapore Consulting Inc", status: "warm" },
 ];
 
-// Haversine formula to calculate distance between two lat/lng points
-const getDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371; // km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-    Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLon / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // distance in km
-};
+
 
 const LeadAllocation = ({ navigation }) => {
   const { themeStyles } = useContext(ThemeContext);
@@ -38,7 +27,8 @@ const LeadAllocation = ({ navigation }) => {
   useEffect(() => {
     const updatedLeads = dummyLeads.map((lead) => ({
       ...lead,
-      distance: getDistance(
+      matchScore: validateMatchScore(lead.matchScore),
+      distance: calculateDistance(
         userLocation.latitude,
         userLocation.longitude,
         lead.latitude,
@@ -78,10 +68,10 @@ const LeadAllocation = ({ navigation }) => {
         <Text style={[styles.name, { color: themeStyles.text }]}>{lead.name}</Text>
         <Text style={[styles.company, { color: themeStyles.textSecondary }]}>{lead.company}</Text>
         <Text style={[styles.text, { color: themeStyles.textSecondary }]}>
-          Distance: {lead?.distance?.toFixed(2)} km
+          Distance: {lead?.distance?.toFixed(2) || 0} km
         </Text>
         <Text style={[styles.text, { color: isHighScore ? '#4CAF50' : themeStyles.text, fontWeight: isHighScore ? '600' : 'normal' }]}>
-          Match Score: {lead.matchScore}%
+          Match Score: {validateMatchScore(lead.matchScore)}%
         </Text>
         
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(lead.status) }]}>

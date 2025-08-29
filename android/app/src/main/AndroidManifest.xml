@@ -25,6 +25,11 @@
       android:allowBackup="false"
       android:theme="@style/AppTheme">
       
+      <!-- Google Maps API Key -->
+      <meta-data
+        android:name="com.google.android.geo.API_KEY"
+        android:value="AIzaSyB6YGAEKj5jpjNFO3K4NxkD4yXFMmiXNKY" />
+      
       <activity
         android:name=".SplashActivity"
         android:theme="@style/SplashTheme"

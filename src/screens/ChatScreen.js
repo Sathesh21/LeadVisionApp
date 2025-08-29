@@ -1,157 +1,283 @@
-import React, { useContext, useState, useRef, useEffect } from "react";
-import {
-  View,
-  TextInput,
-  FlatList,
-  KeyboardAvoidingView,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-} from "react-native";
+import React, { useContext, useState, useRef } from "react";
+import { SafeAreaView, View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { ThemeContext } from "../theme/ThemeContext";
-import { BASE_COLORS, SPACING, BORDER_RADIUS, FONT_SIZE } from "../constants/colors";
 import Header from "../components/Header/Header";
 import MessageBubble from "../components/MessageBubble";
-import LeadCard from "../components/LeadCard"; // keep your existing LeadCard component
+import LeadCard from "../components/LeadCard";
+import ApiService from "../utils/apiService";
+import { validateMatchScore } from "../utils/validation";
 
 const ChatScreen = ({ navigation }) => {
   const { themeStyles } = useContext(ThemeContext);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState([
+    { 
+      id: '1', 
+      text: 'Hello! I\'m your AI assistant. Ask me about leads using queries like:\n\n• "Show me nearby leads"\n• "Find hot leads"\n• "High score leads"\n• "All leads"', 
+      isUser: false, 
+      timestamp: new Date(),
+      type: 'welcome'
+    }
+  ]);
+  const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const flatListRef = useRef(null);
 
-  useEffect(() => {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToEnd({ animated: true });
-    }
-  }, [messages]);
-
-  const fetchLeads = async (query = "") => {
-    try {
-      // Mock API response with better lead data
-      const mockLeads = [
-        { id: '1', name: 'Rajesh Kumar', location: 'T. Nagar, Chennai, Tamil Nadu', matchScore: 95 },
-        { id: '2', name: 'Priya Sharma', location: 'Anna Nagar, Chennai, Tamil Nadu', matchScore: 87 },
-        { id: '3', name: 'Arjun Krishnan', location: 'Velachery, Chennai, Tamil Nadu', matchScore: 78 },
-        { id: '4', name: 'Meera Devi', location: 'Adyar, Chennai, Tamil Nadu', matchScore: 92 },
-        { id: '5', name: 'Suresh Babu', location: 'Tambaram, Chennai, Tamil Nadu', matchScore: 65 },
-        { id: '6', name: 'Lakshmi Narayanan', location: 'Mylapore, Chennai, Tamil Nadu', matchScore: 83 },
-      ];
-
-      let filtered;
-      const queryLower = query.toLowerCase();
-
-      // Simulate AI understanding for different queries
-      if (queryLower.includes('nearby') || queryLower.includes('near')) {
-        filtered = mockLeads.slice(0, 3); // first 3 as nearby
-      } else if (queryLower.includes('high') || queryLower.includes('best')) {
-        filtered = mockLeads.filter(lead => lead.matchScore > 85);
-      } else if (queryLower.includes('all') || queryLower.includes('show')) {
-        filtered = mockLeads;
-      } else {
-        filtered = mockLeads.filter(lead => 
-          lead.name.toLowerCase().includes(queryLower) ||
-          lead.location.toLowerCase().includes(queryLower)
-        );
-      }
-
-      // Add matchScorePercent for display
-      return filtered.map(lead => ({
-        ...lead,
-        matchScorePercent: lead.matchScore
-      }));
-    } catch (error) {
-      console.error('Error fetching leads:', error);
-      return [];
-    }
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
   };
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!inputText.trim() || isLoading) return;
 
-    const userMsg = { id: Date.now().toString(), type: "user", text: input };
-    setMessages((prev) => [...prev, userMsg]);
-
-    const leads = await fetchLeads(input);
-
-    const systemMsg = {
-      id: (Date.now() + 1).toString(),
-      type: "system",
-      text: leads.length > 0
-        ? `Here are the results for "${input}":`
-        : `No results found for "${input}".`,
-      leads,
+    const userMessage = {
+      id: Date.now().toString(),
+      text: inputText.trim(),
+      isUser: true,
+      timestamp: new Date()
     };
-
-    setMessages((prev) => [...prev, systemMsg]);
-    setInput("");
-  };
-
-  const renderItem = ({ item }) => {
-    if (item.type === "user") return <MessageBubble text={item.text} isUser />;
-    if (item.type === "system" && item.leads) {
-      return (
-        <View>
-          <MessageBubble text={item.text} />
-          {item.leads.map((lead, idx) => (
-            <LeadCard key={lead.id || idx} lead={lead} />
-          ))}
-        </View>
-      );
+    
+    setMessages(prev => [...prev, userMessage]);
+    const query = inputText.trim();
+    setInputText('');
+    setIsLoading(true);
+    scrollToBottom();
+    
+    try {
+      const response = await ApiService.apiCall('/leads/search', { query });
+      
+      let aiResponseText = '';
+      let leads = [];
+      
+      if (response.success && response.data.length > 0) {
+        leads = response.data
+          .filter(lead => lead && lead.name) // Filter out empty/invalid leads
+          .map(lead => ({
+            ...lead,
+            matchScore: validateMatchScore(lead.matchScore || lead.matchScorePercent)
+          }));
+        const highScoreLeads = leads.filter(lead => lead.matchScore > 80);
+        
+        aiResponseText = `Found ${leads.length} lead${leads.length > 1 ? 's' : ''} for "${query}".`;
+        
+        if (highScoreLeads.length > 0) {
+          aiResponseText += ` ${highScoreLeads.length} have high match scores (>80%).`;
+        }
+      } else {
+        aiResponseText = `No leads found for "${query}". Try:\n\n• "nearby leads"\n• "hot leads"\n• "all leads"`;
+      }
+      
+      const aiResponse = {
+        id: (Date.now() + 1).toString(),
+        text: aiResponseText,
+        isUser: false,
+        timestamp: new Date(),
+        leads: leads,
+        query: query
+      };
+      
+      setMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      const errorResponse = {
+        id: (Date.now() + 1).toString(),
+        text: 'Sorry, I encountered an error while searching for leads. Please try again.',
+        isUser: false,
+        timestamp: new Date(),
+        type: 'error'
+      };
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
+      setIsLoading(false);
+      scrollToBottom();
     }
-    return <MessageBubble text={item.text} />;
   };
+
+  const renderTypingIndicator = () => {
+    if (!isLoading) return null;
+    
+    return (
+      <View style={[styles.typingContainer, { backgroundColor: themeStyles.card }]}>
+        <ActivityIndicator size="small" color={themeStyles.primary} />
+        <Text style={[styles.typingText, { color: themeStyles.textSecondary }]}>AI is thinking...</Text>
+      </View>
+    );
+  };
+
+  const renderMessage = ({ item }) => (
+    <View>
+      <MessageBubble message={item} themeStyles={themeStyles} />
+      {item.leads && item.leads.length > 0 && (
+        <View style={styles.leadsContainer}>
+          <Text style={[styles.leadsHeader, { color: themeStyles.text }]}>
+            {item.leads.length} Lead{item.leads.length > 1 ? 's' : ''} Found
+          </Text>
+          {item.leads
+            .filter(lead => lead && lead.name) // Filter out empty leads
+            .map(lead => (
+              <LeadCard 
+                key={lead.id || Math.random().toString()} 
+                lead={lead} 
+                themeStyles={themeStyles}
+                onPress={() => navigation.navigate('LeadDetails', { lead })}
+                showHighlight={lead.matchScore > 80}
+              />
+            ))}
+        </View>
+      )}
+    </View>
+  );
+
+  const suggestedQueries = [
+    'Show me nearby leads',
+    'Find hot leads', 
+    'High score leads',
+    'All leads'
+  ];
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: themeStyles.background }]}
-      behavior="padding"
-    >
-      <Header title="Task 2: AI Result Display" navigation={navigation} />
+    <SafeAreaView style={[styles.container, { backgroundColor: themeStyles.background }]}>
+      <Header title="Task 2: AI Chat" navigation={navigation} />
+      
       <FlatList
         ref={flatListRef}
         data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.chatContainer}
+        renderItem={renderMessage}
+        keyExtractor={item => item.id}
+        style={styles.messagesList}
+        contentContainerStyle={styles.messagesContent}
+        onContentSizeChange={scrollToBottom}
       />
+      
+      {renderTypingIndicator()}
+      
+      {messages.length === 1 && (
+        <View style={styles.suggestionsContainer}>
+          <Text style={[styles.suggestionsTitle, { color: themeStyles.textSecondary }]}>Try asking:</Text>
+          {suggestedQueries.map((query, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[styles.suggestionChip, { backgroundColor: themeStyles.card, borderColor: themeStyles.primary }]}
+              onPress={() => setInputText(query)}
+            >
+              <Text style={[styles.suggestionText, { color: themeStyles.primary }]}>{query}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+      
       <View style={[styles.inputContainer, { backgroundColor: themeStyles.card }]}>
         <TextInput
-          style={[styles.input, { color: themeStyles.text }]}
-          placeholder="Type your query..."
-          placeholderTextColor={themeStyles.textSecondary}
-          value={input}
-          onChangeText={setInput}
+          style={[styles.textInput, { color: themeStyles.text, borderColor: themeStyles.primary }]}
+          value={inputText}
+          onChangeText={setInputText}
+          placeholder="Ask about leads... (e.g., 'show me nearby leads')"
+          placeholderTextColor="#999"
+          multiline
+          maxLength={200}
+          editable={!isLoading}
         />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-          <Text style={styles.sendText}>Send</Text>
+        <TouchableOpacity
+          style={[styles.sendButton, { 
+            backgroundColor: inputText.trim() && !isLoading ? themeStyles.primary : themeStyles.textSecondary,
+            opacity: inputText.trim() && !isLoading ? 1 : 0.5
+          }]}
+          onPress={handleSend}
+          disabled={!inputText.trim() || isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.sendButtonText}>Send</Text>
+          )}
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  chatContainer: { padding: SPACING.md },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: SPACING.sm,
+  messagesList: { flex: 1 },
+  messagesContent: { padding: 16, paddingBottom: 8 },
+  leadsContainer: { 
+    marginTop: 12,
+    marginHorizontal: 8,
   },
-  input: {
+  leadsHeader: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  typingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    gap: 8,
+  },
+
+  typingText: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginLeft: 8,
+  },
+  suggestionsContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  suggestionsTitle: {
+    fontSize: 12,
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  suggestionChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 6,
+    alignSelf: 'flex-start',
+  },
+  suggestionText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    alignItems: 'flex-end',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+  },
+  textInput: {
     flex: 1,
-    padding: SPACING.sm,
-    fontSize: FONT_SIZE.md,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginRight: 8,
+    maxHeight: 100,
+    fontSize: 16,
   },
   sendButton: {
-    backgroundColor: BASE_COLORS.blue,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    borderRadius: BORDER_RADIUS.sm,
-    marginLeft: SPACING.sm,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 20,
+    minWidth: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  sendText: { color: "#fff", fontWeight: "600" },
+  sendButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
 });
 
 export default ChatScreen;

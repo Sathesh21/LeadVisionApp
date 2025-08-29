@@ -1,25 +1,19 @@
-// src/screens/DashboardScreen.js
 import React, { useContext, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, SafeAreaView } from "react-native";
 import { ThemeContext } from "../theme/ThemeContext";
 import Header from "../components/Header/Header";
+import { getNextNotificationLead } from "../data/notificationLeads";
 
 const DashboardScreen = ({ navigation }) => {
   const { themeStyles } = useContext(ThemeContext);
 
-  // Simulate push notification after 5 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
-      const mockLead = {
-        name: 'Rajesh Kumar',
-        location: 'T. Nagar, Chennai, Tamil Nadu',
-        matchScorePercent: 94,
-        image: 'https://via.placeholder.com/150'
-      };
+      const mockLead = getNextNotificationLead();
       
       Alert.alert(
         'New Lead Alert!',
-        `High-priority lead: ${mockLead.name} (${mockLead.matchScorePercent}% match)`,
+        `${mockLead.matchScorePercent > 80 ? 'High' : 'Medium'}-priority lead: ${mockLead.name} (${mockLead.matchScorePercent}% match)`,
         [
           { text: 'Dismiss', style: 'cancel' },
           { 
@@ -32,12 +26,17 @@ const DashboardScreen = ({ navigation }) => {
 
     return () => clearTimeout(timer);
   }, [navigation]);
+  
   return (
-    <>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: themeStyles.background }]}>
       <Header navigation={navigation} title="Dashboard" onSettingsPress={() => navigation.navigate("Settings")} />
-      <View style={[styles.container, { backgroundColor: themeStyles.background }]}>
+      <ScrollView 
+        style={[styles.scrollView, { backgroundColor: themeStyles.background }]}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={[styles.title, { color: themeStyles.text }]}>
-          Select a Task
+          🚀 LeadVision Tasks
         </Text>
         {[
           { 
@@ -81,28 +80,25 @@ const DashboardScreen = ({ navigation }) => {
         ))}
         
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: '#FF6B35', marginTop: 20 }]}
+          style={[styles.button, { backgroundColor: themeStyles.primary, marginTop: 20, marginBottom: 20 }]}
           onPress={() => {
-            const mockLead = {
-              name: 'Priya Sharma',
-              location: 'Anna Nagar, Chennai, Tamil Nadu',
-              matchScorePercent: 88
-            };
+            const mockLead = getNextNotificationLead();
             navigation.navigate('Notification', { lead: mockLead });
           }}
         >
           <Text style={[styles.buttonText, { color: '#fff' }]}>
-            🔔 Simulate Push Notification
+            🔔 Test Notification
           </Text>
         </TouchableOpacity>
-      </View>
-    </>
-
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
+  safeArea: { flex: 1 },
+  scrollView: { flex: 1 },
+  scrollContent: { padding: 20, paddingBottom: 40 },
   title: { fontSize: 20, marginBottom: 20, textAlign: "center", fontWeight: 'bold' },
   taskCard: {
     padding: 16,

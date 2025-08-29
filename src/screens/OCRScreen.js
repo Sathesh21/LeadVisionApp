@@ -1,104 +1,37 @@
 import React, { useContext, useState } from "react";
-import { SafeAreaView, View, Text, Image, FlatList, Platform, Alert, ToastAndroid } from "react-native";
-import { launchCamera, launchImageLibrary } from "react-native-image-picker";
-import TextRecognition from "@react-native-ml-kit/text-recognition";
+import { SafeAreaView, View, Text, Image, FlatList, Alert, ToastAndroid, Platform } from "react-native";
 import Header from "../components/Header/Header";
 import CustomInput from "../components/CustomInput/CustomInput";
 import CustomButton from "../components/CustomButton/CustomButton";
 import SavedListItem from "../components/SavedList/SavedList";
 import { ThemeContext } from "../theme/ThemeContext";
+import { useOCR } from "../hooks/useOCR";
+import { validateConfidence } from "../utils/validation";
 import DEFAULT_TEXT from "../constants/defaultText";
-import { requestPermissions } from "../utils/permissions";
 
 const MAX_ITEMS = 5;
 
 const OCRScreen = ({ navigation }) => {
   const { themeStyles } = useContext(ThemeContext);
-
-  const [imageUri, setImageUri] = useState(null);
-  const [ocrData, setOcrData] = useState({ name: "", idNumber: "", dob: "" });
-  const [confidenceData, setConfidenceData] = useState({ name: null, idNumber: null, dob: null });
   const [originalData, setOriginalData] = useState({ name: "", idNumber: "", dob: "" });
-  const [isProcessing, setIsProcessing] = useState(false);
   const [savedDataList, setSavedDataList] = useState([]);
+  
+  const { 
+    imageUri, 
+    ocrData, 
+    confidenceData, 
+    isProcessing, 
+    captureImage, 
+    selectImage, 
+    resetOCR, 
+    updateOCRData,
+    updateConfidenceData,
+    updateImageUri
+  } = useOCR();
 
-  // ====== Permissions & Image Handling ======
-  const handleCamera = async () => {
-    const granted = await requestPermissions(true, false);
-    if (!granted) return;
-    pickImage(true);
-  };
 
-  const handleGallery = async () => {
-    const needsStorage = Platform.OS === "android" && Platform.Version < 33;
-    const granted = await requestPermissions(false, needsStorage);
-    if (!granted) return;
-    pickImage(false);
-  };
 
-  const pickImage = async (fromCamera) => {
-    try {
-      setIsProcessing(true);
-      const result = fromCamera
-        ? await launchCamera({ mediaType: "photo" })
-        : await launchImageLibrary({ mediaType: "photo" });
 
-      if (result.assets?.length) {
-        const uri = result.assets[0].uri;
-        setImageUri(uri);
-        extractText(uri);
-      } else {
-        setIsProcessing(false);
-        Alert.alert("No image selected", "Please select or capture an image.");
-      }
-    } catch (error) {
-      setIsProcessing(false);
-      console.error(error);
-      Alert.alert("Error", "Failed to pick image");
-    }
-  };
-
-  // ====== OCR Extraction ======
-  const extractText = async (uri) => {
-    try {
-      const result = await TextRecognition.recognize(uri);
-      const allLines = result.blocks.flatMap(block =>
-        block.lines.map(line => ({ text: line.text, confidence: Math.round(line.confidence * 100) }))
-      );
-
-      let name = "", idNumber = "", dob = "";
-      let nameConfidence = null, idConfidence = null, dobConfidence = null;
-
-      const getValueAfterKey = (line, key) => {
-        const regex = new RegExp(`${key}\\s*[:\\-]?\\s*(.*)`, "i");
-        const match = line.text.match(regex);
-        return match ? match[1].trim() : "";
-      };
-
-      allLines.forEach(line => {
-        const textLower = line.text.toLowerCase();
-        if (!name && textLower.includes("name")) {
-          name = getValueAfterKey(line, "name");
-          nameConfidence = name ? line.confidence : null;
-        } else if (!idNumber && textLower.includes("id")) {
-          idNumber = getValueAfterKey(line, "id");
-          idConfidence = idNumber ? line.confidence : null;
-        } else if (!dob && (textLower.includes("dob") || textLower.includes("date of birth"))) {
-          dob = getValueAfterKey(line, "dob") || getValueAfterKey(line, "date of birth");
-          dobConfidence = dob ? line.confidence : null;
-        }
-      });
-
-      setOcrData({ name, idNumber, dob });
-      setOriginalData({ name, idNumber, dob });
-      setConfidenceData({ name: nameConfidence, idNumber: idConfidence, dob: dobConfidence });
-      setIsProcessing(false);
-    } catch (error) {
-      setIsProcessing(false);
-      console.error(error);
-      Alert.alert("Error", "Failed to recognize text");
-    }
-  };
 
   // ====== Save, Delete, Edit ======
   const handleSave = () => {
@@ -116,8 +49,7 @@ const OCRScreen = ({ navigation }) => {
 
     setSavedDataList(prev => [...prev, { ...ocrData, imageUri }]);
     setOriginalData({ ...ocrData });
-    setOcrData({ name: "", idNumber: "", dob: "" });
-    setImageUri(null);
+    resetOCR();
 
     // Show save confirmation
     if (Platform.OS === "android") {
@@ -130,9 +62,24 @@ const OCRScreen = ({ navigation }) => {
   };
 
   const handleEdit = (item, index) => {
-    setOcrData({ name: item.name, idNumber: item.idNumber, dob: item.dob });
-    setImageUri(item.imageUri);
-    setSavedDataList(prev => prev.filter((_, i) => i !== index)); // remove temporarily
+    updateOCRData('name', item.name || '');
+    updateOCRData('idNumber', item.idNumber || '');
+    updateOCRData('dob', item.dob || '');
+    
+    // Set confidence data for edited items
+    updateConfidenceData({
+      name: item.name ? 85 : null,
+      idNumber: item.idNumber ? 85 : null,
+      dob: item.dob ? 85 : null
+    });
+    
+    // Set image if available
+    if (item.imageUri) {
+      updateImageUri(item.imageUri);
+    }
+    
+    // Remove from saved list only after data is loaded
+    setSavedDataList(prev => prev.filter((_, i) => i !== index));
   };
 
   const isSaveEnabled =
@@ -142,21 +89,34 @@ const OCRScreen = ({ navigation }) => {
       ocrData.dob !== originalData.dob
     );
 
-  const renderInputWithConfidence = (label, value, confidence, onChangeText) => (
-    <View style={{ marginBottom: 15 }}>
-      <CustomInput label={label} value={value} onChangeText={onChangeText} />
-      {value && confidence !== null && (
-        <Text style={{ 
-          color: confidence > 80 ? '#4CAF50' : confidence > 60 ? '#FF9800' : '#F44336', 
-          fontSize: 12, 
-          marginTop: 2,
-          fontWeight: '600'
-        }}>
-          Confidence: {confidence}% {confidence > 80 ? '✓' : confidence > 60 ? '⚠' : '✗'}
-        </Text>
-      )}
-    </View>
-  );
+  const renderInputWithConfidence = (label, value, confidence, onChangeText) => {
+    const validConfidence = validateConfidence(confidence);
+    const showConfidence = value && value.length > 0;
+    
+    return (
+      <View style={{ marginBottom: 15 }}>
+        <CustomInput label={label} value={value} onChangeText={onChangeText} />
+        {showConfidence && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+            <View style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: validConfidence > 80 ? '#4CAF50' : validConfidence > 60 ? '#FF9800' : '#F44336',
+              marginRight: 6
+            }} />
+            <Text style={{ 
+              color: validConfidence > 80 ? '#4CAF50' : validConfidence > 60 ? '#FF9800' : '#F44336', 
+              fontSize: 12, 
+              fontWeight: '600'
+            }}>
+              Confidence: {validConfidence}% {validConfidence > 80 ? '✓ High' : validConfidence > 60 ? '⚠ Medium' : '✗ Low'}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   const renderEmptyList = () => (
     <View style={{ padding: 20, alignItems: "center" }}>
@@ -180,8 +140,8 @@ const OCRScreen = ({ navigation }) => {
               </Text>
 
               <View style={{ flexDirection: "row", justifyContent: "space-between", marginVertical: 10 }}>
-                <CustomButton title={DEFAULT_TEXT.captureImage} onPress={handleCamera} disabled={isProcessing} />
-                <CustomButton title={DEFAULT_TEXT.uploadImage} onPress={handleGallery} outline disabled={isProcessing} />
+                <CustomButton title={DEFAULT_TEXT.captureImage} onPress={captureImage} disabled={isProcessing} />
+                <CustomButton title={DEFAULT_TEXT.uploadImage} onPress={selectImage} outline disabled={isProcessing} />
               </View>
 
               {imageUri && (
@@ -200,11 +160,11 @@ const OCRScreen = ({ navigation }) => {
               )}
 
               {renderInputWithConfidence(DEFAULT_TEXT.nameLabel, ocrData.name, confidenceData.name,
-                text => setOcrData({ ...ocrData, name: text }))}
+                text => updateOCRData('name', text))}
               {renderInputWithConfidence(DEFAULT_TEXT.idNumberLabel, ocrData.idNumber, confidenceData.idNumber,
-                text => setOcrData({ ...ocrData, idNumber: text }))}
+                text => updateOCRData('idNumber', text))}
               {renderInputWithConfidence(DEFAULT_TEXT.dobLabel, ocrData.dob, confidenceData.dob,
-                text => setOcrData({ ...ocrData, dob: text }))}
+                text => updateOCRData('dob', text))}
 
               <CustomButton
                 title={DEFAULT_TEXT.saveData}

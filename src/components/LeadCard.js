@@ -7,8 +7,14 @@ import { SPACING, BORDER_RADIUS, FONT_SIZE } from "../constants/colors";
 const LeadCard = ({ lead }) => {
   const { themeStyles } = useContext(ThemeContext);
 
-  // Highlight if matchScorePercent > 80
-  const highlight = lead.matchScorePercent > 80;
+  // Return null if lead data is incomplete
+  if (!lead || !lead.name) {
+    return null;
+  }
+
+  // Handle both matchScore and matchScorePercent
+  const matchScore = lead.matchScore || lead.matchScorePercent || 0;
+  const highlight = matchScore > 80;
 
   return (
     <View
@@ -19,10 +25,10 @@ const LeadCard = ({ lead }) => {
     >
       <Text style={[styles.name, { color: themeStyles.text }]}>{lead.name}</Text>
       <Text style={[styles.location, { color: themeStyles.textSecondary }]}>
-        {lead.location}
+        {lead.location || 'Location not available'}
       </Text>
       <Text style={[styles.score, { color: highlight ? "green" : themeStyles.text }]}>
-        Match Score: {lead.matchScorePercent}%
+        Match Score: {matchScore}%
       </Text>
     </View>
   );
