@@ -1,11 +1,9 @@
-import React, { useContext } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
-import { ThemeContext } from "../theme/ThemeContext";
-import Header from "../components/Header/Header";
-import { validateMatchScore } from "../utils/validation";
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, Animated } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const NotificationScreen = ({ navigation, route }) => {
-  const { themeStyles } = useContext(ThemeContext);
+  const [pulseAnim] = useState(new Animated.Value(1));
 
   const lead = route?.params?.lead || {
     name: "Rajesh Kumar",
@@ -13,119 +11,161 @@ const NotificationScreen = ({ navigation, route }) => {
     matchScorePercent: 92,
   };
 
-  const validMatchScore = validateMatchScore(lead.matchScorePercent);
+  useEffect(() => {
+    const pulse = () => {
+      Animated.timing(pulseAnim, { toValue: 1.2, duration: 800, useNativeDriver: true })
+        .start(() => {
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true })
+            .start(() => pulse());
+        });
+    };
+    pulse();
+  }, []);
 
   const handleAccept = () => {
-    // Navigate to Lead Details screen
     navigation.navigate("LeadDetails", { lead });
   };
 
-  const handleReject = () => {
-    Alert.alert('Lead Declined', 'Lead has been declined', [
-      { text: 'OK', onPress: () => navigation.goBack() }
-    ]);
+  const handleReject = async () => {
+    try {
+      const existing = await AsyncStorage.getItem('@declined_leads');
+      const declined = existing ? JSON.parse(existing) : [];
+      declined.push({ ...lead, declinedAt: new Date().toISOString() });
+      await AsyncStorage.setItem('@declined_leads', JSON.stringify(declined));
+      navigation.goBack();
+    } catch (error) {
+      navigation.goBack();
+    }
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: themeStyles.background }]}>
-      <Header title="Task 3: Full Notification" navigation={navigation} />
-
-      <View style={[styles.notificationCard, { backgroundColor: themeStyles.card }]}>
-        <View style={styles.header}>
-          <Text style={[styles.alertTitle, { color: themeStyles.text }]}>
-            🔔 New Lead Alert!
-          </Text>
-          <Text style={[styles.priority, { 
-            color: validMatchScore > 80 ? '#4CAF50' : '#FF9800',
-            backgroundColor: validMatchScore > 80 ? '#E8F5E8' : '#FFF3E0'
-          }]}>
-            {validMatchScore > 80 ? 'HIGH PRIORITY' : 'MEDIUM PRIORITY'}
-          </Text>
+    <Modal visible={true} presentationStyle="fullScreen">
+      <View style={[styles.container, { backgroundColor: lead.matchScorePercent > 80 ? '#1B5E20' : '#E65100' }]}>
+        <View style={styles.topSection}>
+          <Text style={styles.incomingText}>Incoming Lead</Text>
+          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+            <Text style={styles.alertIcon}>🔔</Text>
+          </Animated.View>
         </View>
 
-        <Text style={[styles.leadName, { color: themeStyles.text }]}>
-          {lead.name}
-        </Text>
-        <Text style={[styles.leadLocation, { color: themeStyles.textSecondary }]}>
-          📍 {lead.location}
-        </Text>
-        <Text style={[styles.leadScore, { color: validMatchScore > 80 ? "#4CAF50" : "#FF9800" }]}>
-          Match Score: {validMatchScore}%
-        </Text>
+        <View style={styles.middleSection}>
+          <View style={styles.avatarContainer}>
+            <Text style={styles.avatarText}>{lead.name.charAt(0)}</Text>
+          </View>
+          <Text style={styles.leadName}>{lead.name}</Text>
+          <Text style={styles.leadLocation}>{lead.location}</Text>
+          <View style={[styles.matchBadge, { backgroundColor: lead.matchScorePercent > 80 ? '#4CAF50' : '#FF9800' }]}>
+            <Text style={styles.matchText}>{lead.matchScorePercent}% Match</Text>
+          </View>
+        </View>
 
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.acceptButton, { backgroundColor: "#4CAF50" }]}
-            onPress={handleAccept}
-          >
-            <Text style={styles.buttonText}>Accept</Text>
+        <View style={styles.bottomSection}>
+          <TouchableOpacity onPress={handleReject}>
+            <View style={[styles.buttonCircle, { backgroundColor: '#F44336' }]}>
+              <Text style={styles.buttonText}>✕</Text>
+            </View>
+            <Text style={styles.buttonLabel}>Decline</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.rejectButton, { backgroundColor: "#F44336" }]}
-            onPress={handleReject}
-          >
-            <Text style={styles.buttonText}>Reject</Text>
+          
+          <TouchableOpacity onPress={handleAccept}>
+            <View style={[styles.buttonCircle, { backgroundColor: '#4CAF50' }]}>
+              <Text style={styles.buttonText}>✓</Text>
+            </View>
+            <Text style={styles.buttonLabel}>Accept</Text>
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  notificationCard: {
+  container: {
     flex: 1,
-    margin: 20,
-    borderRadius: 16,
-    padding: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 8,
   },
-  header: {
+  topSection: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingTop: 60,
+  },
+  incomingText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 16,
     marginBottom: 20,
   },
-  alertTitle: {
-    fontSize: 20,
+  alertIcon: {
+    fontSize: 40,
+  },
+  middleSection: {
+    flex: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  avatarContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  avatarText: {
+    fontSize: 48,
     fontWeight: 'bold',
-    marginBottom: 10,
+    color: '#fff',
   },
-  priority: {
-    fontSize: 12,
+  leadName: {
+    fontSize: 32,
     fontWeight: 'bold',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 8,
   },
-  leadName: { fontSize: 22, fontWeight: "bold", marginBottom: 8 },
-  leadLocation: { fontSize: 16, marginBottom: 8 },
-  leadScore: { fontSize: 16, fontWeight: "600", marginBottom: 20 },
-  buttonContainer: {
-    flexDirection: "row",
-    width: "100%",
-    justifyContent: "space-around",
+  leadLocation: {
+    fontSize: 18,
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
+    marginBottom: 20,
   },
-  acceptButton: {
-    flex: 0.4,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
+  matchBadge: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
-  rejectButton: {
-    flex: 0.4,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
+  matchText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
-  buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
+  bottomSection: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 60,
+    paddingBottom: 60,
+  },
+  buttonCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  buttonText: {
+    fontSize: 30,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  buttonLabel: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
 
 export default NotificationScreen;

@@ -1,4 +1,3 @@
-// Input validation utilities
 export const validateEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
@@ -22,13 +21,11 @@ export const validateDate = (date) => {
   return dateRegex.test(date);
 };
 
-// Confidence score validation with default fallback
 export const validateConfidence = (confidence) => {
   const num = Number(confidence);
-  return !isNaN(num) && num >= 0 && num <= 100 ? Math.round(num) : 70; // Default to 70% when invalid
+  return !isNaN(num) && num >= 0 && num <= 100 ? Math.round(num) : 70;
 };
 
-// Coordinate validation
 export const validateCoordinates = (lat, lng) => {
   const latitude = Number(lat);
   const longitude = Number(lng);
@@ -38,13 +35,12 @@ export const validateCoordinates = (lat, lng) => {
          longitude >= -180 && longitude <= 180;
 };
 
-// Distance calculation with validation
 export const calculateDistance = (lat1, lon1, lat2, lon2) => {
   if (!validateCoordinates(lat1, lon1) || !validateCoordinates(lat2, lon2)) {
     return 0;
   }
   
-  const R = 6371; // Earth's radius in km
+  const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -56,13 +52,11 @@ export const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return isNaN(distance) ? 0 : Number(distance.toFixed(2));
 };
 
-// Sanitize text input
 export const sanitizeText = (text) => {
   if (!text || typeof text !== 'string') return '';
   return text.trim().replace(/[<>]/g, '');
 };
 
-// Validate match score
 export const validateMatchScore = (score) => {
   const num = Number(score);
   return !isNaN(num) && num >= 0 && num <= 100 ? Math.round(num) : 0;

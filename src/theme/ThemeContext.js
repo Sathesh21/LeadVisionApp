@@ -23,7 +23,6 @@ export const ThemeProvider = ({ children }) => {
 
   const updateBaseColor = (newBaseColor) => {
     setBaseColor(newBaseColor);
-    saveThemeSettings(theme, newBaseColor);
   };
 
   const themeStyles = useMemo(

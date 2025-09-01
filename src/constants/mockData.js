@@ -1,4 +1,3 @@
-// Mock data for the application
 export const MOCK_LEADS = [
   {
     id: '1',

@@ -1,93 +1,37 @@
-import { useState, useCallback } from 'react';
-import { Platform, Alert, Linking } from 'react-native';
-import { request, PERMISSIONS, RESULTS, openSettings } from 'react-native-permissions';
+import { useCallback } from 'react';
+import { PermissionsAndroid, Platform } from 'react-native';
+
+export const requestPermissionDirect = async (type) => {
+  if (Platform.OS !== 'android') return true;
+  try {
+    let permission;
+    switch(type) {
+      case 'camera': permission = PermissionsAndroid.PERMISSIONS.CAMERA; break;
+      case 'location': permission = PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION; break;
+      case 'storage': permission = Platform.Version >= 33 ? PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES : PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE; break;
+      default: return false;
+    }
+    const result = await PermissionsAndroid.request(permission);
+    return result === PermissionsAndroid.RESULTS.GRANTED;
+  } catch (err) {
+    return false;
+  }
+};
 
 export const usePermissions = () => {
-  const [permissions, setPermissions] = useState({
-    camera: false,
-    location: false,
-    storage: false,
-  });
-
   const requestCameraPermission = useCallback(async () => {
-    try {
-      const permission = Platform.OS === 'ios' 
-        ? PERMISSIONS.IOS.CAMERA 
-        : PERMISSIONS.ANDROID.CAMERA;
-      
-      const result = await request(permission);
-      const granted = result === RESULTS.GRANTED;
-      
-      setPermissions(prev => ({ ...prev, camera: granted }));
-      
-      if (!granted && result === RESULTS.BLOCKED) {
-        Alert.alert(
-          'Camera Permission Required',
-          'Please enable camera access in settings to capture images.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: openSettings }
-          ]
-        );
-      }
-      
-      return granted;
-    } catch (error) {
-      console.error('Camera permission error:', error);
-      return false;
-    }
+    return await requestPermissionDirect('camera');
   }, []);
 
   const requestLocationPermission = useCallback(async () => {
-    try {
-      const permission = Platform.OS === 'ios' 
-        ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE 
-        : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
-      
-      const result = await request(permission);
-      const granted = result === RESULTS.GRANTED;
-      
-      setPermissions(prev => ({ ...prev, location: granted }));
-      
-      if (!granted && result === RESULTS.BLOCKED) {
-        Alert.alert(
-          'Location Permission Required',
-          'Please enable location access in settings for location tracking.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: openSettings }
-          ]
-        );
-      }
-      
-      return granted;
-    } catch (error) {
-      console.error('Location permission error:', error);
-      return false;
-    }
+    return await requestPermissionDirect('location');
   }, []);
 
   const requestStoragePermission = useCallback(async () => {
-    try {
-      if (Platform.OS === 'ios') return true;
-      
-      const permission = Platform.Version >= 33 
-        ? PERMISSIONS.ANDROID.READ_MEDIA_IMAGES
-        : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE;
-      
-      const result = await request(permission);
-      const granted = result === RESULTS.GRANTED;
-      
-      setPermissions(prev => ({ ...prev, storage: granted }));
-      return granted;
-    } catch (error) {
-      console.error('Storage permission error:', error);
-      return false;
-    }
+    return await requestPermissionDirect('storage');
   }, []);
 
   return {
-    permissions,
     requestCameraPermission,
     requestLocationPermission,
     requestStoragePermission,

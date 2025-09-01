@@ -8,7 +8,6 @@ const LeadDetails = ({ route, navigation }) => {
   const { themeStyles } = useContext(ThemeContext);
   const { lead } = route.params || {};
 
-  // Enhanced lead data with defaults
   const leadData = {
     name: lead?.name || 'Unknown Lead',
     location: lead?.location || 'Location not specified',

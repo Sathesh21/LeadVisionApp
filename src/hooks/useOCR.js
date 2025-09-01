@@ -120,9 +120,6 @@ export const useOCR = () => {
   }, [showToast]);
 
   const captureImage = useCallback(async () => {
-    const hasPermission = await requestCameraPermission();
-    if (!hasPermission) return;
-
     try {
       const result = await launchCamera({ 
         mediaType: 'photo',
@@ -140,12 +137,9 @@ export const useOCR = () => {
       console.error('Camera error:', error);
       Alert.alert('Camera Error', 'Failed to capture image');
     }
-  }, [requestCameraPermission, extractTextFromImage]);
+  }, [extractTextFromImage]);
 
   const selectImage = useCallback(async () => {
-    const hasPermission = await requestStoragePermission();
-    if (!hasPermission) return;
-
     try {
       const result = await launchImageLibrary({ 
         mediaType: 'photo',
@@ -163,7 +157,7 @@ export const useOCR = () => {
       console.error('Gallery error:', error);
       Alert.alert('Gallery Error', 'Failed to select image');
     }
-  }, [requestStoragePermission, extractTextFromImage]);
+  }, [extractTextFromImage]);
 
   const resetOCR = useCallback(() => {
     setImageUri(null);

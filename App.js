@@ -4,14 +4,17 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ThemeProvider } from "./src/theme/ThemeContext";
 
 // Screens
+import LoginScreen from "./src/screens/LoginScreen";
 import DashboardScreen from "./src/screens/DashboardScreen";
 import OCRScreen from "./src/screens/OCRScreen";
 import ChatScreen from "./src/screens/ChatScreen";
 import NotificationScreen from "./src/screens/NotificationScreen";
+import PushNotificationDemo from "./src/screens/PushNotificationDemo";
 import LocationScreen from "./src/screens/LocationScreen";
 import LeadAllocation from "./src/screens/LeadAllocation";
 import SettingsScreen from "./src/screens/SettingsScreen";
 import LeadDetails from "./src/screens/LeadDetails";
+import DeclinedLeads from "./src/screens/DeclinedLeads";
 
 const Stack = createNativeStackNavigator();
 
@@ -20,14 +23,17 @@ const App = () => {
     <ThemeProvider>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Dashboard" component={DashboardScreen} />
           <Stack.Screen name="OCR" component={OCRScreen} />
           <Stack.Screen name="Chat" component={ChatScreen} />
           <Stack.Screen name="Notification" component={NotificationScreen} />
+          <Stack.Screen name="PushNotificationDemo" component={PushNotificationDemo} />
           <Stack.Screen name="Location" component={LocationScreen} />
           <Stack.Screen name="LeadAllocation" component={LeadAllocation} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="LeadDetails" component={LeadDetails} />
+          <Stack.Screen name="DeclinedLeads" component={DeclinedLeads} />
         </Stack.Navigator>
       </NavigationContainer>
     </ThemeProvider>

@@ -29,11 +29,6 @@ const OCRScreen = ({ navigation }) => {
     updateImageUri
   } = useOCR();
 
-
-
-
-
-  // ====== Save, Delete, Edit ======
   const handleSave = () => {
     if (!ocrData.name && !ocrData.idNumber && !ocrData.dob) {
       Alert.alert("Nothing to save", "Please fill at least one field before saving.");
@@ -51,7 +46,6 @@ const OCRScreen = ({ navigation }) => {
     setOriginalData({ ...ocrData });
     resetOCR();
 
-    // Show save confirmation
     if (Platform.OS === "android") {
       ToastAndroid.show("Saved successfully!", ToastAndroid.SHORT);
     }
@@ -66,19 +60,16 @@ const OCRScreen = ({ navigation }) => {
     updateOCRData('idNumber', item.idNumber || '');
     updateOCRData('dob', item.dob || '');
     
-    // Set confidence data for edited items
     updateConfidenceData({
       name: item.name ? 85 : null,
       idNumber: item.idNumber ? 85 : null,
       dob: item.dob ? 85 : null
     });
     
-    // Set image if available
     if (item.imageUri) {
       updateImageUri(item.imageUri);
     }
     
-    // Remove from saved list only after data is loaded
     setSavedDataList(prev => prev.filter((_, i) => i !== index));
   };
 

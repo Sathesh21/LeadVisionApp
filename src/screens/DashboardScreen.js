@@ -3,28 +3,31 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, SafeAreaVi
 import { ThemeContext } from "../theme/ThemeContext";
 import Header from "../components/Header/Header";
 import { getNextNotificationLead } from "../data/notificationLeads";
+import FirebaseMessagingService from "../services/firebaseMessaging";
+import PushNotificationService from "../services/pushNotificationService";
 
 const DashboardScreen = ({ navigation }) => {
   const { themeStyles } = useContext(ThemeContext);
 
   useEffect(() => {
+    FirebaseMessagingService.setNavigationHandler((screen, params) => {
+      navigation.navigate(screen, params);
+    });
+    
+    PushNotificationService.setNavigationHandler((screen, params) => {
+      navigation.navigate(screen, params);
+    });
+    
+    FirebaseMessagingService.initialize();
+
     const timer = setTimeout(() => {
       const mockLead = getNextNotificationLead();
-      
-      Alert.alert(
-        'New Lead Alert!',
-        `${mockLead.matchScorePercent > 80 ? 'High' : 'Medium'}-priority lead: ${mockLead.name} (${mockLead.matchScorePercent}% match)`,
-        [
-          { text: 'Dismiss', style: 'cancel' },
-          { 
-            text: 'View Full Screen', 
-            onPress: () => navigation.navigate('Notification', { lead: mockLead })
-          }
-        ]
-      );
+      FirebaseMessagingService.sendTestNotification(mockLead);
     }, 5000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [navigation]);
   
   return (
@@ -51,8 +54,8 @@ const DashboardScreen = ({ navigation }) => {
           },
           { 
             title: "Task 3: Full-Screen Notification Flow", 
-            description: "Simulate push notifications, full-page display, Accept/Reject buttons, lead details navigation",
-            screen: "Notification" 
+            description: "Full-page notification display with Accept/Reject buttons and lead details navigation",
+            screen: "PushNotificationDemo" 
           },
           { 
             title: "Task 4: Location Fetch with Battery Optimization", 
@@ -80,14 +83,24 @@ const DashboardScreen = ({ navigation }) => {
         ))}
         
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: themeStyles.primary, marginTop: 20, marginBottom: 20 }]}
+          style={[styles.button, { backgroundColor: themeStyles.primary, marginTop: 20 }]}
           onPress={() => {
             const mockLead = getNextNotificationLead();
-            navigation.navigate('Notification', { lead: mockLead });
+            console.log('Test button pressed, sending notification...');
+            FirebaseMessagingService.sendTestNotification(mockLead);
           }}
         >
           <Text style={[styles.buttonText, { color: '#fff' }]}>
-            🔔 Test Notification
+            🔔 Test Push Notification
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: '#F44336', marginTop: 10, marginBottom: 20 }]}
+          onPress={() => navigation.navigate('DeclinedLeads')}
+        >
+          <Text style={[styles.buttonText, { color: '#fff' }]}>
+            📋 View Declined Leads
           </Text>
         </TouchableOpacity>
       </ScrollView>

@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, PermissionsAndroid } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { ThemeContext } from '../theme/ThemeContext';
 import Header from '../components/Header/Header';
 
-const LEADS = [
-  { id: '1', name: 'Rajesh Kumar', latitude: 13.0900, longitude: 80.2800, matchScore: 95 },
-  { id: '2', name: 'Priya Sharma', latitude: 13.0700, longitude: 80.2600, matchScore: 87 },
-  { id: '3', name: 'Arjun Krishnan', latitude: 13.0950, longitude: 80.2500, matchScore: 78 },
-  { id: '4', name: 'Meera Devi', latitude: 13.0650, longitude: 80.2750, matchScore: 92 },
-];
+
+import { NOTIFICATION_LEADS } from '../data/notificationLeads';
+
+const LEADS = NOTIFICATION_LEADS.map(lead => ({
+  id: lead.id,
+  name: lead.name,
+  latitude: lead.latitude,
+  longitude: lead.longitude,
+  matchScore: lead.matchScorePercent
+}));
 
 const LocationScreen = ({ navigation }) => {
   const { themeStyles } = useContext(ThemeContext);
@@ -21,53 +25,56 @@ const LocationScreen = ({ navigation }) => {
   const [locationName, setLocationName] = useState('');
   const [intervalId, setIntervalId] = useState(null);
 
-  const requestPermission = async () => {
-    // Always return true for mock data
-    return true;
-  };
-
   const getCurrentLocation = async () => {
-    // Simulate movement by adding small random variations
-    const baseLatitude = 13.0827;
-    const baseLongitude = 80.2707;
-    const variation = 0.005; // Small movement radius
+    const chennaiLocations = [
+      { lat: 13.0827, lng: 80.2707, area: 'T. Nagar, Chennai' },
+      { lat: 13.0850, lng: 80.2101, area: 'Anna Nagar, Chennai' },
+      { lat: 13.0067, lng: 80.2206, area: 'Adyar, Chennai' },
+      { lat: 12.9756, lng: 80.2207, area: 'Velachery, Chennai' },
+      { lat: 13.0339, lng: 80.2619, area: 'Mylapore, Chennai' },
+      { lat: 12.9249, lng: 80.1000, area: 'Tambaram, Chennai' }
+    ];
     
-    const chennaiLocation = {
-      latitude: baseLatitude + (Math.random() - 0.5) * variation,
-      longitude: baseLongitude + (Math.random() - 0.5) * variation,
+    const randomLocation = chennaiLocations[Math.floor(Math.random() * chennaiLocations.length)];
+    
+    const locationData = {
+      latitude: randomLocation.lat,
+      longitude: randomLocation.lng,
+      accuracy: 100,
       timestamp: new Date(),
-      area: 'Chennai, Tamil Nadu'
+      area: randomLocation.area
     };
     
-    setUserLocation(chennaiLocation);
+    setUserLocation(locationData);
     setLastUpdate(new Date());
-    setLocationName('Chennai, Tamil Nadu');
+    setLocationName(randomLocation.area);
     
     setLocationHistory(prev => {
-      const newHistory = [chennaiLocation, ...prev].slice(0, 5);
+      const newHistory = [locationData, ...prev].slice(0, 5);
       return newHistory;
     });
     
-    findNearestLead(chennaiLocation.latitude, chennaiLocation.longitude);
+    findNearestLead(locationData.latitude, locationData.longitude);
   };
 
-  const startTracking = () => {
+  const startTracking = async () => {
     setIsTracking(true);
     getCurrentLocation();
     
-    const id = setInterval(() => {
-      getCurrentLocation();
-    }, 120000); // 2 minutes
-    
-    setIntervalId(id);
+    // Simulate tracking with Chennai coordinates
+    setIntervalId(setInterval(() => {
+      if (isTracking) {
+        getCurrentLocation();
+      }
+    }, 2 * 60 * 1000)); // 2 minutes
   };
 
   const stopTracking = () => {
-    setIsTracking(false);
     if (intervalId) {
       clearInterval(intervalId);
       setIntervalId(null);
     }
+    setIsTracking(false);
   };
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -99,7 +106,9 @@ const LocationScreen = ({ navigation }) => {
   useEffect(() => {
     getCurrentLocation();
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
   }, []);
 
@@ -125,7 +134,6 @@ const LocationScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* 3. Show location on map view */}
       {userLocation && (
         <View style={styles.mapContainer}>
           <MapView

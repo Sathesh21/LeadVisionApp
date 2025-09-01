@@ -18,19 +18,9 @@ const SettingsScreen = ({ navigation }) => {
         themeStyles={themeStyles}
       />
 
-      {/* Header Row */}
-      {/* <View style={styles.header}>
-        {navigation && navigation.canGoBack() && (
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={[styles.backText, { color: themeStyles.text }]}>←</Text>
-          </TouchableOpacity>
-        )}
-        <Text style={[styles.title, { color: themeStyles.text }]}>
-          {DEFAULT_TEXT.themeSettingsTitle}
-        </Text>
-      </View> */}
+      <View style={styles.spacer} />
 
-      {/* Toggle Dark/Light */}
+      <Text style={[styles.sectionTitle, { color: themeStyles.text }]}>Theme Settings</Text>
       <TouchableOpacity
         style={[styles.button, { borderColor: themeStyles.text }]}
         onPress={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -93,6 +83,8 @@ const styles = StyleSheet.create({
   buttonText: { fontSize: FONT_SIZE.medium, fontFamily: FONT_FAMILY.bold },
   colorRow: { flexDirection: "row", marginTop: 15, gap: 10 },
   colorBox: { width: 40, height: 40, borderRadius: 8 },
+  spacer: { height: 20 },
+  sectionTitle: { fontSize: FONT_SIZE.large || 18, fontFamily: FONT_FAMILY.bold, marginBottom: 10 },
 });
 
 export default SettingsScreen;
